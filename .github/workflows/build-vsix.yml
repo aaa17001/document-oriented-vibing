@@ -1,0 +1,51 @@
+name: Build VSIX
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-vsix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建并打包 VSIX
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          mkdir -p dist-vsix
+          pnpm dlx @vscode/vsce package --no-dependencies \
+            --out "dist-vsix/document-oriented-vibing-cn-${VERSION}.vsix"
+
+      - name: 上传 VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-oriented-vibing-cn-vsix
+          path: dist-vsix/*.vsix
+          if-no-files-found: error
+          retention-days: 30
