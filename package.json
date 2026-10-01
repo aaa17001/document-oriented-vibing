@@ -1,24 +1,32 @@
 {
-  "name": "document-oriented-vibing",
-  "displayName": "document-oriented-vibing",
-  "description": "Get the same cursor features in VSCode with Codex",
-  "version": "0.0.5",
-  "publisher": "ethanitovitch",
+  "name": "document-oriented-vibing-cn",
+  "displayName": "DOV 中文版 - Codex 代码审核",
+  "description": "面向 OpenAI Codex 的 VS Code 代码修改审核、Diff、Approve/Reject 工具",
+  "version": "0.1.0",
+  "publisher": "aaa17001",
   "icon": "assets/icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ethanitovitch/document-oriented-vibing.git"
+    "url": "https://github.com/aaa17001/document-oriented-vibing.git"
   },
-  "homepage": "https://github.com/ethanitovitch/document-oriented-vibing#readme",
+  "homepage": "https://github.com/aaa17001/document-oriented-vibing#readme",
   "bugs": {
-    "url": "https://github.com/ethanitovitch/document-oriented-vibing/issues"
+    "url": "https://github.com/aaa17001/document-oriented-vibing/issues"
   },
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "Codex",
+    "OpenAI",
+    "review",
+    "diff",
+    "AI",
+    "code review"
   ],
   "activationEvents": [
     "onUri",
