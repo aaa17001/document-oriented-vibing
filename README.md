@@ -1,188 +1,294 @@
-# Document Oriented Vibing (DOV)
+# Document Oriented Vibing 中文增强版（DOV）
 
-A VS Code extension that gives you the same cursor type experience in VScode with Codex
+> 面向 VS Code + OpenAI Codex 的代码修改审核工具。
 
-DOV turns Codex changes into a focused review surface where you can inspect hunks, jump to the changed file, and approve or reject changes at the chunk level. It also includes `Cmd+C`/`Ctrl+C` double-tap context copying and feature diagrams.
+本仓库 Fork 自 [ethanitovitch/document-oriented-vibing](https://github.com/ethanitovitch/document-oriented-vibing)，保留原项目的 DOV 审核能力，并作为后续 **中文界面、SVN 隔离工作区、Step Review、DSE 企业透明加密适配** 的开发基线。
 
 ![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue)
 ![Reviews](https://img.shields.io/badge/Review-Diff%20Hunks-green)
-![Mermaid](https://img.shields.io/badge/Diagrams-Mermaid-ff69b4)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ![Document Oriented Vibing review workflow hero](assets/dov-hero.png)
 
-![DOV home screen](assets/home.png)
+## 这个插件解决什么问题？
 
-## Why?
+Codex 可以快速修改大量代码，但正式项目开发通常还需要明确知道：
 
-AI coding tools can make large edits quickly, but normal diffs are a poor review interface when you are moving fast. DOV makes review the center of the workflow:
+- Codex 这一轮到底改了哪些文件；
+- 每个代码块具体增加、删除了什么；
+- 哪些修改已经审核通过；
+- 哪些修改需要拒绝并恢复；
+- 下一轮修改是否建立在已确认代码之上。
 
-1. Ask Codex to make a change in your project.
-2. Tell the assistant `+review`.
-3. DOV captures the code changes from the current Codex thread.
-4. Review each file and hunk in VS Code.
-5. Approve, reject, or revisit changes without losing the context of what the AI did.
+DOV 把 **代码审核** 放到 AI 编程流程中心：
 
-Additionally if your forgot to add `+review` to your prompt, you can always capture the review from any old conversation in the home screen.
+```text
+Codex 修改代码
+      ↓
+生成 Review Diff
+      ↓
+按文件 / Hunk 审核
+      ↓
+Approve / Reject / Undo
+      ↓
+继续下一轮修改
+```
 
-![DOV review screen](assets/review.png)
+## 当前已有能力
 
-## Agent tabs and status
+### 1. 捕获 Codex 修改
 
-Open the **Codex sidebar** to see its **Agents** section, which lists top-level conversations without subagents. Click a conversation to switch the Codex chat in place, or use its pencil action to rename it. Names are shared with Codex, so renaming a conversation in either place updates the Agents list. The **+** button starts a new chat in the same sidebar. There is no need to open DOV Home or Explorer. You can drag the Agents section header above the Codex chat if you prefer it at the top.
-
-**DOV: New Agent Tab** remains available separately if you want editor tabs.
-
-The list refreshes every five seconds while visible and shows up to 50 recent local conversations for the open workspace folders, including conversations with no code edits. It reads `CODEX_HOME/sessions` (default `~/.codex/sessions`). Working, Finished and Interrupted are inferred from recorded lifecycle events. A working session with no log updates for ten minutes shows Unknown; approval/queued state and cloud-only conversations are not available from these logs.
-
-The sidebar section is contributed to Codex's view container and requires the OpenAI Codex extension. Switching uses its URI handler at `<editor-scheme>://openai.chatgpt/local/<id>`, inspected in Codex 26.901.22334. That route is an internal integration and may change. The sidebar **+** uses `chatgpt.newChat`; separate editor tabs use `chatgpt.newCodexPanel`.
-
-Capture supports direct and exec-wrapped `apply_patch` calls, including namespaced calls and JSON tool arguments. It uses the latest prompt containing recognized patches among the latest two prompts. Shell/script file writes, deleted-file reconstruction and dynamically constructed patch strings are not captured. When capturing from the command palette, DOV asks you to choose a conversation if no thread ID was supplied.
-
-## Review Workflow
-
-Use `+review` after Codex has finished editing code:
+在 Codex 完成代码修改后输入：
 
 ```text
 +review
 ```
 
-The assistant opens DOV's VS Code URI handler. The extension then creates a raw diff review in `.reviews/`, opens the review panel, and tracks approve/reject state in a sibling `.state.json` file.
+DOV 会读取当前 Codex 本地会话，捕获支持的 `apply_patch` 修改并生成 Review。
 
-Review features:
-
-- **Thread-aware capture** — captures Codex-written changes from the active thread.
-- **Hunk-level review** — approve, reject, or undo individual changed chunks.
-- **File-level review** — approve or reject all hunks in a file.
-- **Jump-to-file navigation** — select a hunk and open the changed source file in VS Code.
-- **Inline status** — pending, approved, and rejected states are visible while reviewing.
-- **Persistent state** — review decisions are saved next to the `.diff` artifact.
-- **LLM-friendly copy** — copy a file or hunk with enough context to ask an assistant for follow-up changes.
-
-## Quick Start
-
-1. Open any project in VS Code.
-2. Run `DOV: Home` from the command palette (`Ctrl/Cmd+Shift+P`).
-3. Click the setup/configure button to add the DOV instructions to your `AGENTS.md` and repo-scoped skill.
-4. Make code changes with Codex.
-5. Ask Codex for `+review`.
-6. Review the generated `.reviews/*.diff` in DOV.
-
-## Install
-
-```bash
-# Clone and build
-git clone https://github.com/ethanitovitch/document-oriented-vibing.git
-cd document-oriented-vibing
-pnpm install
-node esbuild.js
-
-# Package as .vsix
-pnpm add -g @vscode/vsce
-vsce package --no-dependencies --out document-oriented-vibing.vsix
-
-# Install in your VS Code-compatible editor
-code --install-extension document-oriented-vibing.vsix --force
-```
-
-## Workflow Modes
-
-Prefix your prompt to the LLM with a mode:
-
-| Mode | What happens |
-|------|-------------|
-| `+review` | Captures Codex-made changes from the current thread and opens the DOV review panel. |
-| `+show` | LLM writes the actual code, then creates a diagram with real file paths. |
-| `+plan` | LLM creates a diagram with placeholder file paths. No code written. |
-
-No mode writes files unless the prompt explicitly asks for it.
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `DOV: Home` | Open the home screen with features, reviews, and Codex threads. |
-| `DOV: +review` | Open the latest review diff. |
-| `DOV: Capture Codex Review` | Capture files written by a Codex thread into a review diff. |
-| `DOV: Copy Selection for LLM` | Copy the current selection, or current line, with `path:line` context. Shortcut: double-tap `Cmd+C` on macOS or `Ctrl+C` elsewhere. |
-| `DOV: Quick New Feature` | Create a new feature diagram file. |
-| `DOV: Open Feature` | Open a specific feature diagram. |
-
-## Agent Review Command
-
-Agents should open DOV's URI handler for `+review`:
-
-```bash
-code --open-url "vscode://<installed-extension-id>/captureReview?name=auth-review.diff&threadId=$CODEX_THREAD_ID"
-```
-
-This opens a VS Code URI and requires GUI access. If running in a sandbox, agents should request outside-sandbox/escalated execution up front. Agents should not treat exit code 0 alone as proof that the extension opened, especially if Electron/macOS stderr includes messages such as `task_name_for_pid`. After running the URI command, agents should verify `.reviews/<name>.diff` exists before saying the review opened.
-
-The editor routes the URI to the extension. The extension creates `.reviews/` if needed, writes `.reviews/auth-review.diff`, and opens the review panel.
-
-## Feature Diagrams
-
-DOV can also plan and visualize features as diagrams. This is useful before writing code, but it is secondary to the review workflow.
+也可以从 VS Code 命令面板执行：
 
 ```text
-+plan user authentication with JWT and rate limiting
+DOV: Capture Codex Review
 ```
 
-The LLM creates `.features/user-auth.md` and DOV opens the diagram:
+### 2. 文件级和 Hunk 级审核
 
-```mermaid
-flowchart LR
-    Client([Browser]) -->|POST /login| Auth["AuthController\nsrc/auth/controller.ts"]
-    Auth -->|credentials| Validate{"validateCredentials\nsrc/auth/validate.ts"}
-    Validate -->|valid| Token["issueJWT\nsrc/auth/token.ts"]
-    Validate -->|invalid| Err([401 Unauthorized])
-    Token -->|JWT| Auth
-    Auth -->|audit event| Log["logAttempt\nsrc/auth/audit.ts"]
+可以逐文件、逐代码块查看修改，并分别执行：
+
+- **Approve**：接受修改；
+- **Reject**：拒绝修改并把对应代码恢复为修改前内容；
+- **Undo**：撤销 Reject，重新恢复 Codex 的修改。
+
+### 3. VS Code 原生 Diff
+
+点击 Review 中的文件或 Hunk，会直接打开 VS Code 原生 Diff Editor，对比：
+
+```text
+修改前代码  ↔  修改后代码
 ```
 
-Feature diagram capabilities:
+可以查看新增、删除、修改行和语法高亮。
 
-- **Live preview** — diagrams update as files change.
-- **Clickable nodes** — file paths in node labels open that file in VS Code.
-- **Line numbers** — append `:42` to a path to jump to a specific line.
-- **Hover tooltips** — `## Details` adds per-node descriptions.
-- **Scroll to zoom** — Ctrl/Cmd + scroll to zoom in or out.
-- **Any Mermaid diagram** — flowchart, sequence, class, state, ER, journey, gantt.
+### 4. 多轮 Review
 
-## How It Works Under the Hood
+审核数据默认保存在：
 
 ```text
 .reviews/
-├── auth-review.diff
-└── auth-review.diff.state.json
-
-.features/
-├── user-login.md
-└── order-pipeline.md
-
-.agents/
-└── skills/
-    └── document-oriented-vibing/
-        ├── SKILL.md
-        ├── agents/openai.yaml
-        └── references/
-            ├── schema.md
-            └── review-schema.md
+├─ example-review.diff
+├─ example-review.diff.state.json
+└─ .rounds/
 ```
 
-The extension watches `.reviews/*.diff` and `.reviews/*.json` and opens a review page for the latest review artifact. Diff review approvals are saved to a sibling `.state.json` file.
-In a `.diff` review, click a file or hunk to open VS Code's diff editor with both removed and added lines. This workspace defaults to the one-column **Inline** diff view; use the diff editor's **Diff View** menu to switch layouts.
+可以连续执行多轮：
 
-It also watches `.features/*.md` for changes and renders them as interactive diagrams in a webview panel. From `DOV: Home`, DOV checks your `CLAUDE.md`, Codex `AGENTS.md` pointer, and repo-scoped DOV skill for versioned markers. The setup button adds or updates any missing pieces.
+```text
+Round 1
+   ↓
+提出审核意见
+   ↓
+Codex 修改
+   ↓
+Round 2
+   ↓
+继续审核
+```
 
-## Contributing
+### 5. Review Comments
+
+可以针对具体修改留下评论，再把反馈交给 Codex 继续调整。
+
+### 6. Codex Agent / Thread 列表
+
+插件读取本机：
+
+```text
+CODEX_HOME/sessions
+```
+
+默认位置通常为：
+
+```text
+~/.codex/sessions
+```
+
+并在 Codex 侧边栏显示当前 Workspace 相关会话。
+
+## 与官方 Codex 插件的关系
+
+本插件不是 Codex 的替代品。
+
+它依赖官方 VS Code 扩展：
+
+```text
+openai.chatgpt
+```
+
+整体结构：
+
+```text
+VS Code
+│
+├─ OpenAI Codex Extension
+│      └─ 读取和修改代码
+│
+└─ DOV
+       ├─ 读取 Codex Session
+       ├─ 捕获 apply_patch
+       ├─ 生成 Diff
+       ├─ Approve
+       ├─ Reject
+       └─ 保存 Review 状态
+```
+
+## 快速使用
+
+1. 安装 OpenAI Codex VS Code 扩展。
+2. 安装本插件。
+3. 用 VS Code 打开项目。
+4. 运行 `DOV: Home`。
+5. 按提示完成 DOV 项目级配置。
+6. 让 Codex 正常修改代码。
+7. 修改完成后输入 `+review`。
+8. 在 DOV 中逐项审核。
+
+## 当前限制
+
+当前 DOV 主要依据 Codex Session 中记录的 `apply_patch` 捕获代码变化，因此以下情况可能无法完整捕获：
+
+- Shell/PowerShell 直接写文件；
+- Python、Node 等脚本生成或覆盖文件；
+- 动态构造的 Patch；
+- 部分删除文件场景。
+
+因此本 Fork 后续会增加 **真实 Workspace Snapshot**，用实际文件状态作为最终审核依据，而不是只依赖 Codex 日志。
+
+## 本 Fork 的后续方向
+
+本仓库计划重点增加：
+
+### SVN AI Workspace
+
+目标是在 SVN 项目中实现类似 Git Worktree 的 AI 隔离开发体验：
+
+```text
+SVN Repository
+      │
+      ├──────────────┐
+      │              │
+正式 Working Copy   AI Working Copy
+      │              │
+      │              └─ Codex 修改
+      │                    ↓
+      │                Step Review
+      │                    ↓
+      │              Approve / Reject
+      │                    ↓
+      │                最终 SVN Diff
+      │                    ↓
+      └──────────── SVN Commit
+```
+
+AI 不直接修改正式工作目录。
+
+### Step Review / Baseline
+
+计划支持：
+
+```text
+Step #001
+   ↓
+Review
+   ↓
+Approve
+   ↓
+成为下一步 Baseline
+
+Step #002
+   ↓
+只审核 #001 → #002 的实际变化
+```
+
+### SVN Final Review
+
+正式提交前再进行：
+
+```text
+svn status
+svn diff
+```
+
+形成两层审核：
+
+```text
+AI Step Review
++
+SVN Final Review
+```
+
+### DSE 企业透明加密兼容
+
+优先保持源码读取、写入和 Diff 操作位于 VS Code 环境内，适配已经允许 VS Code / Codex 正常访问源码的企业 DSE 透明加密场景。
+
+不会要求现有 SVN 项目迁移到 Git。
+
+## 安装本 Fork
+
+### 方法一：安装 GitHub Actions 生成的 VSIX
+
+本仓库合并到 `master` 后会自动运行 VSIX 构建流程。
+
+在 GitHub 仓库的 **Actions** 页面找到最新的 **Build VSIX**，下载构建产物，然后在 VS Code 中：
+
+```text
+Extensions
+→ ...
+→ Install from VSIX...
+```
+
+或者使用命令行：
 
 ```bash
-pnpm install
-node esbuild.js
-
-# Press F5 in VS Code to launch the Extension Development Host
+code --install-extension document-oriented-vibing-cn-0.1.0.vsix --force
 ```
+
+### 方法二：本地构建
+
+```bash
+git clone https://github.com/aaa17001/document-oriented-vibing.git
+cd document-oriented-vibing
+
+pnpm install
+pnpm run package
+
+pnpm dlx @vscode/vsce package --no-dependencies --out document-oriented-vibing-cn-0.1.0.vsix
+code --install-extension document-oriented-vibing-cn-0.1.0.vsix --force
+```
+
+安装完成后重新加载 VS Code。
+
+## 常用命令
+
+| 命令 | 作用 |
+|---|---|
+| `DOV: Home` | 打开 DOV 首页 |
+| `DOV: +review` | 打开最新 Review |
+| `DOV: Capture Codex Review` | 从 Codex Thread 捕获修改 |
+| `DOV: Copy Selection for LLM` | 复制带文件路径/行号的上下文 |
+| `DOV: Quick New Feature` | 新建 Feature Diagram |
+| `DOV: Open Feature` | 打开 Feature Diagram |
+
+## 上游项目
+
+原项目：
+
+- [ethanitovitch/document-oriented-vibing](https://github.com/ethanitovitch/document-oriented-vibing)
+
+感谢原作者 Ethan Itovitch 对 DOV 的开发。
 
 ## License
 
-MIT
+MIT License。
+
+本 Fork 继续保留并遵循原项目的版权声明和 MIT License。
